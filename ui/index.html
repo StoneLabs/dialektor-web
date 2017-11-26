@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.1/css/materialize.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/assets/recorder.min.js"></script>
+
+</head>
+
+
+<body>
+
+    <nav>
+        <div class="nav-wrapper">
+            <a class="brand-logo center" href="#">Dialektor</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div>
+            <label>monitorGain</label>
+            <input id="monitorGain" type="number" value="0" />
+        </div>
+
+        <div>
+            <label>numberOfChannels</label>
+            <input id="numberOfChannels" type="number" value="1" />
+        </div>
+
+        <div>
+            <label>bitDepth</label>
+            <input id="bitDepth" type="number" value="16" />
+        </div>
+
+        <h2>Commands</h2>
+        <button id="init" class="btn btn-large red lighten-2 waves-effect waves-light">init</button>
+        <button id="start" class="btn btn-large red lighten-2 waves-effect waves-light" disabled>start</button>
+        <button id="pause" class="btn btn-large red lighten-2 waves-effect waves-light" disabled>pause</button>
+        <button id="resume" class="btn btn-large red lighten-2 waves-effect waves-light" disabled>resume</button>
+        <button id="stopButton" class="btn btn-large red lighten-2 waves-effect waves-light" disabled>stop</button>
+
+        <h2>Recordings</h2>
+        <ul id="recordingslist"></ul>
+
+        <h2>Log</h2>
+        <code>
+            <pre id="log"></pre>
+        </code>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script>
+        var recorder, blob;
+        start.addEventListener("click", function () {
+            recorder.start();
+        });
+        pause.addEventListener("click", function () {
+            recorder.pause();
+        });
+        resume.addEventListener("click", function () {
+            recorder.resume();
+        });
+        stopButton.addEventListener("click", function () {
+            recorder.stop();
+        });
+        init.addEventListener("click", function () {
+            if (!Recorder.isRecordingSupported()) {
+                return screenLogger("Recording features are not supported in your browser.");
+            }
+            recorder = new Recorder({
+                monitorGain: parseInt(monitorGain.value, 10),
+                numberOfChannels: parseInt(numberOfChannels.value, 10),
+                wavBitDepth: parseInt(bitDepth.value, 10),
+                encoderPath: "/assets/waveWorker.min.js"
+            });
+            recorder.addEventListener("start", function (e) {
+                screenLogger('Recorder is started');
+                init.disabled = start.disabled = resume.disabled = true;
+                pause.disabled = stopButton.disabled = false;
+            });
+            recorder.addEventListener("stop", function (e) {
+                screenLogger('Recorder is stopped');
+                init.disabled = false;
+                pause.disabled = resume.disabled = stopButton.disabled = start.disabled = true;
+            });
+            recorder.addEventListener("pause", function (e) {
+                screenLogger('Recorder is paused');
+                init.disabled = pause.disabled = start.disabled = true;
+                resume.disabled = stopButton.disabled = false;
+            });
+            recorder.addEventListener("resume", function (e) {
+                screenLogger('Recorder is resuming');
+                init.disabled = start.disabled = resume.disabled = true;
+                pause.disabled = stopButton.disabled = false;
+            });
+            recorder.addEventListener("streamError", function (e) {
+                screenLogger('Error encountered: ' + e.error.name);
+            });
+            recorder.addEventListener("streamReady", function (e) {
+                init.disabled = pause.disabled = resume.disabled = stopButton.disabled = true;
+                start.disabled = false;
+                screenLogger('Audio stream is ready.');
+            });
+            recorder.addEventListener("dataAvailable", function (e) {
+                var dataBlob = new Blob([e.detail], {
+                    type: 'audio/wav'
+                });
+                var fileName = new Date().toISOString() + ".wav";
+                console.log(dataBlob);
+                blob = dataBlob;
+                var url = URL.createObjectURL(dataBlob);
+                var audio = document.createElement('audio');
+                audio.controls = true;
+                audio.src = url;
+                var link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                link.innerHTML = link.download;
+                var li = document.createElement('li');
+                li.appendChild(link);
+                li.appendChild(audio);
+                recordingslist.appendChild(li);
+                // Send that shit to the server, but how?
+                var data = new FormData();
+                data.append('file', dataBlob);
+
+                $.ajax({
+                    url: "/api/v1/predict",
+                    type: 'POST',
+                    data: data,
+                    contentType: false,
+                    processData: false,
+                    success: function (data) {
+                        alert("boa!");
+                    },
+                    error: function () {
+                        alert("not so boa!");
+                    }
+                });
+            });
+            recorder.initStream();
+        });
+
+        function screenLogger(text, data) {
+            log.innerHTML += "\n" + text + " " + (data || '');
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.1/js/materialize.min.js"></script>
+
+</body>
+
+</html>
