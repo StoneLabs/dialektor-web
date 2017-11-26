@@ -6,7 +6,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.1/css/materialize.min.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="/assets/recorder.min.js"></script>
-
+    <script src="https://bernii.github.io/gauge.js/dist/gauge.min.js"></script>
+    <style>
+        canvas {
+            width: 100%;
+        }
+    </style>
 </head>
 
 
@@ -18,6 +23,10 @@
         </div>
     </nav>
     <div class="container">
+        <div>
+            <h2>Bayrometer</h2>
+            <canvas id="gauge" class="hide"></canvas>
+        </div>
         <div>
             <label>monitorGain</label>
             <input id="monitorGain" type="number" value="0" />
@@ -34,11 +43,12 @@
         </div>
 
         <h2>Commands</h2>
-        <button id="init" class="btn btn-large red lighten-2 waves-effect waves-light">init</button>
-        <button id="start" class="btn btn-large red lighten-2 waves-effect waves-light" disabled>start</button>
-        <button id="pause" class="btn btn-large red lighten-2 waves-effect waves-light" disabled>pause</button>
-        <button id="resume" class="btn btn-large red lighten-2 waves-effect waves-light" disabled>resume</button>
-        <button id="stopButton" class="btn btn-large red lighten-2 waves-effect waves-light" disabled>stop</button>
+        <button id="init" class="btn  red lighten-2 waves-effect waves-light">init</button>
+        <button id="start" class="btn  red lighten-2 waves-effect waves-light" disabled>start</button>
+        <button id="pause" class="btn  red lighten-2 waves-effect waves-light" disabled>pause</button>
+        <button id="resume" class="btn  red lighten-2 waves-effect waves-light" disabled>resume</button>
+        <button id="stopButton" class="btn  red lighten-2 waves-effect waves-light" disabled>stop</button>
+        <button id="bayerdemo" class="btn  red lighten-2 waves-effect waves-light">BAYERN!</button>
 
         <h2>Recordings</h2>
         <ul id="recordingslist"></ul>
@@ -47,10 +57,30 @@
         <code>
             <pre id="log"></pre>
         </code>
+
+        <audio id="fuckbayern" src="/assets/bayern.wav"></audio>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script>
         var recorder, blob;
+
+        var opts = {
+            angle: 0.15, // The span of the gauge arc
+            lineWidth: 0.44, // The line thickness
+            radiusScale: 1, // Relative radius
+            pointer: {
+                length: 0.6, // // Relative to gauge radius
+                strokeWidth: 0.035, // The thickness
+                color: '#000000' // Fill color
+            },
+            limitMax: false, // If false, max value increases automatically if value > maxValue
+            limitMin: false, // If true, the min value of the gauge will be fixed
+            colorStart: '#6FADCF', // Colors
+            colorStop: '#8FC0DA', // just experiment with them
+            strokeColor: '#E0E0E0', // to see which ones work best for you
+            generateGradient: true,
+            highDpiSupport: true // High resolution support
+        };
         start.addEventListener("click", function () {
             recorder.start();
         });
@@ -131,10 +161,16 @@
                     contentType: false,
                     processData: false,
                     success: function (data) {
-                        alert("boa!");
+                        $("#gauge").removeClass("hide");
+                        var target = document.getElementById('gauge'); // your canvas element
+                        var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+                        gauge.maxValue = 100; // set max gauge value
+                        gauge.setMinValue(0); // Prefer setter over gauge.minValue = 0
+                        gauge.animationSpeed = 32; // set animation speed (32 is default value)
+                        gauge.set(data * 100); // set actual value
                     },
                     error: function () {
-                        alert("not so boa!");
+                        console.log("not so boa!");
                     }
                 });
             });
@@ -144,6 +180,19 @@
         function screenLogger(text, data) {
             log.innerHTML += "\n" + text + " " + (data || '');
         }
+
+        $("#bayerdemo").click(() => {
+            $("#fuckbayern")[0].play();
+            setTimeout(function () {
+                $("#gauge").removeClass("hide");
+                var target = document.getElementById('gauge'); // your canvas element
+                var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+                gauge.maxValue = 100; // set max gauge value
+                gauge.setMinValue(0); // Prefer setter over gauge.minValue = 0
+                gauge.animationSpeed = 128; // set animation speed (32 is default value)
+                gauge.set(95); // set actual value
+            }, 10000);
+        });
     </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.1/js/materialize.min.js"></script>

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"io/ioutil"
-	"os"
-	"time"
-
 	"os/exec"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,24 +33,24 @@ func main() {
 			if err != nil {
 				c.JSON(500, "Failed to open file")
 			}
-			bytes, err := ioutil.ReadAll(file)
+			b, err := ioutil.ReadAll(file)
 			if err != nil {
 				c.JSON(500, "Failed to read file")
 			}
-			filename := time.Now().String() + ".wav"
-			ioutil.WriteFile("./tmp/"+filename, bytes, 0755)
-
-			cmd := exec.Command("python3", "~/dialektor-tensorflow/predict.py", "~/dialektor-web/tmp/"+filename)
-			if cmd.Run() != nil {
-				os.Remove("./tmp/" + filename)
-				c.JSON(500, "Failed to run command! ")
-			}
-			output, err := cmd.CombinedOutput()
+			filename := strconv.FormatInt(time.Now().Unix(), 16) + ".wav"
+			ioutil.WriteFile("./tmp/"+filename, b, 0755)
+			cmd := exec.Command("/home/fronbasal/.env/tensorflow/bin/python3", "/home/fronbasal/Desktop/dialektor-tf/predict.py", "/home/fronbasal/go/src/github.com/fronbasal/dialektor-web/tmp/"+filename)
+			var out bytes.Buffer
+			cmd.Stderr = &out
+			cmd.Stdout = &out
+			err = cmd.Run()
 			if err != nil {
-				os.Remove("./tmp/" + filename)
-				c.JSON(500, "Failed to get output of CMD!")
+				c.JSON(500, err.Error()+"\n\n"+out.String())
+				return
 			}
-			c.JSON(200, string(output[:]))
+			x := strings.Split(out.String(), "\n")
+			s := x[len(x)-2]
+			c.JSON(200, strings.Split(s, " ")[1])
 		})
 	}
 	r.Run(":5000")
